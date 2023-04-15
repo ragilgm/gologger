@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/loggerlib.iml" filepath="$PROJECT_DIR$/.idea/loggerlib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../gologger/.idea/gologger.iml" filepath="$PROJECT_DIR$/../gologger/.idea/gologger.iml" />
     </modules>
   </component>
 </project>

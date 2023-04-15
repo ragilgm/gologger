@@ -32,6 +32,11 @@ type LoggerConfig struct {
 	ServiceVersion string
 	Env            string
 	lj             io.Writer
+	FileName       string
+	MaxSize        int
+	MaxBackup      int
+	MaxAge         int
+	Compress       bool
 }
 
 var once sync.Once
@@ -56,22 +61,6 @@ func InitLogger(param *LoggerConfig) {
 		// Add service name and version to log fields
 		log.WithFields(fields)
 
-		param.lj = &lumberjack.Logger{
-			Filename:   "/var/log/myapp.log", // path to log file
-			MaxSize:    1,                    // megabytes
-			MaxBackups: 10,                   // maximum number of backups to keep
-			MaxAge:     28,                   // days
-			Compress:   true,                 // compress old log files
-		}
-		// Set up file hook for log rotation
-		fileHook := &writer.Hook{
-			Writer:    param.lj,
-			LogLevels: []logrus.Level{logrus.DebugLevel, logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel},
-		}
-
-		// Add file hook to logger
-		log.AddHook(fileHook)
-
 		// env for define output
 		param.selectEnv(param.Env)
 
@@ -82,18 +71,39 @@ func InitLogger(param *LoggerConfig) {
 
 }
 
+func (l *LoggerConfig) initFileHook() {
+	l.lj = &lumberjack.Logger{
+		Filename:   l.FileName,  // path to log file
+		MaxSize:    l.MaxSize,   // megabytes
+		MaxBackups: l.MaxBackup, // maximum number of backups to keep
+		MaxAge:     l.MaxAge,    // days
+		Compress:   l.Compress,  // compress old log files
+	}
+	// Set up file hook for log rotation
+	fileHook := &writer.Hook{
+		Writer:    l.lj,
+		LogLevels: []logrus.Level{logrus.DebugLevel, logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel},
+	}
+
+	// Add file hook to logger
+	log.AddHook(fileHook)
+}
+
 func (l *LoggerConfig) selectEnv(env string) {
 	switch env {
 	case EnvLocalKey:
-		logrus.SetOutput(io.MultiWriter(os.Stdout, l.lj))
+		logrus.SetOutput(os.Stdout)
 		return
 	case EnvStgKey:
+		l.initFileHook()
 		logrus.SetOutput(io.MultiWriter(os.Stdout, l.lj))
 		return
 	case EnvProdKey:
+		l.initFileHook()
 		logrus.SetOutput(l.lj)
 		return
 	default:
+		l.initFileHook()
 		logrus.SetOutput(io.MultiWriter(os.Stdout, l.lj))
 		return
 	}
@@ -114,11 +124,14 @@ func GetLoggerEntry(ctx context.Context) *logrus.Entry {
 		return logger.(*logrus.Entry)
 	}
 
-	// Jika logger belum di set pada context, maka akan di set default logger
-
 	loggerModel := &LoggerConfig{
 		ServiceName:    serviceUnknown,
 		ServiceVersion: serviceUnknown,
+		MaxSize:        10,
+		MaxBackup:      10,
+		MaxAge:         28,
+		FileName:       "/var/log/default.log",
+		Compress:       true,
 	}
 
 	InitLogger(loggerModel)
