@@ -108,11 +108,11 @@ func (l *LoggerConfig) selectEnv(env string) {
 	}
 }
 
-func SetLoggerCtx(ctx context.Context, logger *logrus.Entry) context.Context {
+func setLoggerContext(ctx context.Context, logger *logrus.Entry) context.Context {
 	return context.WithValue(ctx, loggerCtxKey, logger)
 }
 
-func GetLoggerEntry(ctx context.Context) *logrus.Entry {
+func getLoggerEntry(ctx context.Context) *logrus.Entry {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -125,7 +125,7 @@ func GetLoggerEntry(ctx context.Context) *logrus.Entry {
 
 	if log != nil {
 		entry := log.WithFields(*fields)
-		SetLoggerCtx(ctx, entry)
+		setLoggerContext(ctx, entry)
 		return entry
 	}
 
@@ -149,48 +149,58 @@ func GetLoggerEntry(ctx context.Context) *logrus.Entry {
 	return log.WithFields(*fields)
 }
 
+func WithCustomPayload(ctx context.Context, title string, payloads map[string]any) {
+	logger := getLoggerEntry(ctx)
+	field := make(logrus.Fields)
+	for key, value := range payloads {
+		field[key] = value
+	}
+	logger = logger.WithFields(field)
+	logger.Info(title)
+}
+
 func WithTraceID(ctx context.Context, traceID string) context.Context {
-	logger := GetLoggerEntry(ctx)
-	return SetLoggerCtx(ctx, logger.WithField(traceIDKey, traceID))
+	logger := getLoggerEntry(ctx)
+	return setLoggerContext(ctx, logger.WithField(traceIDKey, traceID))
 }
 
 func WithFunctionName(ctx context.Context, functionName string) context.Context {
-	logger := GetLoggerEntry(ctx)
-	return SetLoggerCtx(ctx, logger.WithField(functionKey, functionName))
+	logger := getLoggerEntry(ctx)
+	return setLoggerContext(ctx, logger.WithField(functionKey, functionName))
 }
 
 func Info(ctx context.Context, args ...interface{}) {
-	logger := GetLoggerEntry(ctx)
+	logger := getLoggerEntry(ctx)
 	message := fmt.Sprint(args...)
 	logger.Info(message)
 }
 
 func Infof(ctx context.Context, format string, args ...interface{}) {
-	logger := GetLoggerEntry(ctx)
+	logger := getLoggerEntry(ctx)
 	message := fmt.Sprint(args...)
 	logger.Infof(format, message)
 }
 
 func Errorf(ctx context.Context, format string, args ...interface{}) {
-	logger := GetLoggerEntry(ctx)
+	logger := getLoggerEntry(ctx)
 	message := fmt.Sprint(args...)
 	logger.Errorf(format, message)
 }
 
 func Error(ctx context.Context, args ...interface{}) {
-	logger := GetLoggerEntry(ctx)
+	logger := getLoggerEntry(ctx)
 	message := fmt.Sprint(args...)
 	logger.Error(message)
 }
 
 func Warnf(ctx context.Context, format string, args ...interface{}) {
-	logger := GetLoggerEntry(ctx)
+	logger := getLoggerEntry(ctx)
 	message := fmt.Sprint(args...)
 	logger.Warnf(format, message)
 }
 
 func Warn(ctx context.Context, args ...interface{}) {
-	logger := GetLoggerEntry(ctx)
+	logger := getLoggerEntry(ctx)
 	message := fmt.Sprint(args...)
 	logger.Warn(message)
 }

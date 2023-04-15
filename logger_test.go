@@ -8,7 +8,7 @@ import (
 
 func TestGetEntryLogger(t *testing.T) {
 	// initialize logger
-	GetLoggerEntry(nil)
+	getLoggerEntry(nil)
 }
 
 func TestInitLocalLocal(t *testing.T) {
