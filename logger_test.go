@@ -1,4 +1,4 @@
-package gologger
+package main
 
 import (
 	"context"

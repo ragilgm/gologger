@@ -1,4 +1,4 @@
-package gologger
+package main
 
 import (
 	"context"
@@ -41,8 +41,7 @@ type LoggerConfig struct {
 
 var once sync.Once
 var log *logrus.Logger
-
-type RemoveMsgFieldHook struct{}
+var fields *logrus.Fields
 
 func InitLogger(param *LoggerConfig) {
 	if param == nil {
@@ -53,13 +52,10 @@ func InitLogger(param *LoggerConfig) {
 		// Set up logrus logger
 		log = logrus.New()
 
-		fields := logrus.Fields{
+		fields = &logrus.Fields{
 			serviceName:    param.ServiceName,
 			serviceVersion: param.ServiceVersion,
 		}
-
-		// Add service name and version to log fields
-		log.WithFields(fields)
 
 		// env for define output
 		param.selectEnv(param.Env)
@@ -68,6 +64,9 @@ func InitLogger(param *LoggerConfig) {
 		log.SetFormatter(&logrus.JSONFormatter{})
 
 	})
+
+	// Add service name and version to log fields
+	log.WithFields(*fields)
 
 }
 
@@ -124,6 +123,12 @@ func GetLoggerEntry(ctx context.Context) *logrus.Entry {
 		return logger.(*logrus.Entry)
 	}
 
+	if log != nil {
+		entry := log.WithFields(*fields)
+		SetLoggerCtx(ctx, entry)
+		return entry
+	}
+
 	loggerModel := &LoggerConfig{
 		ServiceName:    serviceUnknown,
 		ServiceVersion: serviceUnknown,
@@ -136,12 +141,12 @@ func GetLoggerEntry(ctx context.Context) *logrus.Entry {
 
 	InitLogger(loggerModel)
 
-	fields := logrus.Fields{
+	fields = &logrus.Fields{
 		serviceName:    loggerModel.ServiceName,
 		serviceVersion: loggerModel.ServiceVersion,
 	}
 
-	return log.WithFields(fields)
+	return log.WithFields(*fields)
 }
 
 func WithTraceID(ctx context.Context, traceID string) context.Context {
