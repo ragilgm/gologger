@@ -21,22 +21,20 @@ var (
 	functionKey  = "function"
 )
 
-var (
-	EnvLocalKey = "local"
-	EnvProdKey  = "prod"
-	EnvStgKey   = "stg"
-)
+type FileWriter struct {
+	FileName  string
+	MaxSize   int
+	MaxBackup int
+	MaxAge    int
+	Compress  bool
+}
 
 type LoggerConfig struct {
 	ServiceName    string
 	ServiceVersion string
-	Env            string
+	Formatter      *logrus.Formatter
 	lj             io.Writer
-	FileName       string
-	MaxSize        int
-	MaxBackup      int
-	MaxAge         int
-	Compress       bool
+	FileWriter     *FileWriter
 }
 
 var once sync.Once
@@ -58,10 +56,10 @@ func InitLogger(param *LoggerConfig) {
 		}
 
 		// env for define output
-		param.selectEnv(param.Env)
+		param.initWriter()
 
-		// Set formatter to JSON format
-		log.SetFormatter(&logrus.JSONFormatter{})
+		// format default json
+		log.SetFormatter(*param.Formatter)
 
 	})
 
@@ -70,13 +68,14 @@ func InitLogger(param *LoggerConfig) {
 
 }
 
-func (l *LoggerConfig) initFileHook() {
+func (l *LoggerConfig) initFileWriter() {
+	w := l.FileWriter
 	l.lj = &lumberjack.Logger{
-		Filename:   l.FileName,  // path to log file
-		MaxSize:    l.MaxSize,   // megabytes
-		MaxBackups: l.MaxBackup, // maximum number of backups to keep
-		MaxAge:     l.MaxAge,    // days
-		Compress:   l.Compress,  // compress old log files
+		Filename:   w.FileName,  // path to log file
+		MaxSize:    w.MaxSize,   // megabytes
+		MaxBackups: w.MaxBackup, // maximum number of backups to keep
+		MaxAge:     w.MaxAge,    // days
+		Compress:   w.Compress,  // compress old log files
 	}
 	// Set up file hook for log rotation
 	fileHook := &writer.Hook{
@@ -88,24 +87,24 @@ func (l *LoggerConfig) initFileHook() {
 	log.AddHook(fileHook)
 }
 
-func (l *LoggerConfig) selectEnv(env string) {
-	switch env {
-	case EnvLocalKey:
-		logrus.SetOutput(os.Stdout)
-		return
-	case EnvStgKey:
-		l.initFileHook()
-		logrus.SetOutput(io.MultiWriter(os.Stdout, l.lj))
-		return
-	case EnvProdKey:
-		l.initFileHook()
-		logrus.SetOutput(l.lj)
-		return
-	default:
-		l.initFileHook()
-		logrus.SetOutput(io.MultiWriter(os.Stdout, l.lj))
+func (l *LoggerConfig) initWriter() {
+	if l.FileWriter != nil {
+		l.consoleAndWriteFile()
 		return
 	}
+
+	l.consolOnly()
+}
+
+func (l *LoggerConfig) consolOnly() {
+	logrus.SetOutput(os.Stdout)
+	return
+}
+
+func (l *LoggerConfig) consoleAndWriteFile() {
+	l.initFileWriter()
+	logrus.SetOutput(io.MultiWriter(os.Stdout, l.lj))
+	return
 }
 
 func setLoggerContext(ctx context.Context, logger *logrus.Entry) context.Context {
@@ -132,11 +131,6 @@ func getLoggerEntry(ctx context.Context) *logrus.Entry {
 	loggerModel := &LoggerConfig{
 		ServiceName:    serviceUnknown,
 		ServiceVersion: serviceUnknown,
-		MaxSize:        10,
-		MaxBackup:      10,
-		MaxAge:         28,
-		FileName:       "/var/log/default.log",
-		Compress:       true,
 	}
 
 	InitLogger(loggerModel)
