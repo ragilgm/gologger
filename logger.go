@@ -59,7 +59,7 @@ func InitLogger(param *LoggerConfig) {
 
 		// format default json
 		formatter := &logrus.JSONFormatter{}
-		formatter.TimestampFormat = "2006-01-02T15:04:05.000Z07:00"
+		formatter.TimestampFormat = "2006-01-02T15:04:05.000000Z07:00"
 		log.SetFormatter(formatter)
 
 	})
