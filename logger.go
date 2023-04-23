@@ -32,7 +32,6 @@ type FileWriter struct {
 type LoggerConfig struct {
 	ServiceName    string
 	ServiceVersion string
-	Formatter      *logrus.Formatter
 	lj             io.Writer
 	FileWriter     *FileWriter
 }
@@ -59,7 +58,7 @@ func InitLogger(param *LoggerConfig) {
 		param.initWriter()
 
 		// format default json
-		log.SetFormatter(*param.Formatter)
+		log.SetFormatter(&logrus.JSONFormatter{})
 
 	})
 
